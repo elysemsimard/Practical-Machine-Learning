@@ -1,0 +1,116 @@
+---
+title: "Course project - Practical Machine Learning"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+## Introduction
+
+The goal of this project is to predict the manner in which the 6 participants did their exercices. There are 5 different classes. We will divide the pml-training.csv in a training set and a test set to validate the model. With the pml-test.csv, we will predict the classe for each action.
+
+```{r}
+library(caret)
+library(randomForest)
+```
+
+
+
+## Load the data
+
+
+```{r}
+training <- read.csv("pml-training.csv")
+testing_class <- read.csv("pml-testing.csv")
+```
+
+
+```{r}
+str(training)
+```
+
+
+# Clean data
+
+Get rid of the variables where there is a lot of NAs.
+
+```{r}
+training2 <- training[,-c(grep("^kurtosis_",names(training)),
+                          grep("^skewness_",names(training)),
+                          grep("^var_",names(training)),
+                          grep("^max_",names(training)),
+                          grep("^min_",names(training)),
+                          grep("^amplitude_",names(training)),
+                          grep("^avg_",names(training)),
+                          grep("^stddev_",names(training)), 
+                          grep("^raw_timestamp_part_",names(training)),
+                          grep("^cvtd_timestamp",names(training)),
+                          grep("^new_window",names(training)) )]
+
+
+dim(training2)
+```
+
+
+
+
+
+# Separate the training set in two groups
+
+We want a training set (60% of the observations in training2) and a testing set (40% of the observations in training2).
+
+```{r}
+Intrainset <- createDataPartition(training$X,p=0.6,list=FALSE)
+
+trainingset <- training2[Intrainset,]
+
+testset <- training2[-Intrainset,]
+
+dim(trainingset)
+dim(testset)
+```
+
+
+We have 11774 observations in the training set. This is the set we will use to fit the model. We have 7848 observations in the test set.
+
+
+
+# Fit a model
+
+We will use the Random Forest to create classes. We will perform a PCA to reduce the number of predictors.
+
+```{r, warning=FALSE}
+trainrf <- train(classe~.-X,data=trainingset, preProcess="pca",method="rf")
+predrf <- predict(trainrf, testset)
+
+confusionMatrix(predrf, testset$classe)
+```
+
+
+
+
+We have an Accuracy of 0.976. 
+
+
+
+# Make prediction with the validation data
+
+We will run the model on the validation data to predict the classes.
+
+
+```{r}
+
+validate <- predict(trainrf, testing_class)
+validate
+```
+
+
+We obtain the class for each of the observations in the validation set.
+
+
